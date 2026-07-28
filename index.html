@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>收入规划模拟器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ===== HEADER ===== -->
+    <header class="app-header">
+      <div class="header-left">
+        <h1>📊 收入规划模拟器</h1>
+        <p class="subtitle">家庭财务全景推演 · 目标反推每月所需收入</p>
+      </div>
+      <div class="header-right">
+        <div class="mode-toggle">
+          <span class="mode-label">计算模式：</span>
+          <div class="toggle-buttons" id="modeToggle">
+            <button class="toggle-btn active" data-mode="goal-seeking">🎯 目标求解</button>
+            <button class="toggle-btn" data-mode="projection">📈 方案推演</button>
+          </div>
+        </div>
+        <div class="view-toggle">
+          <span class="mode-label">显示：</span>
+          <div class="toggle-buttons" id="viewToggle">
+            <button class="toggle-btn active" data-view="nominal">名义值</button>
+            <button class="toggle-btn" data-view="real">实际值</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== MAIN LAYOUT ===== -->
+    <div class="main-layout">
+      <!-- ===== LEFT SIDEBAR ===== -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-scroll">
+
+          <!-- 1. 基本信息 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-basic">
+              <span class="section-title">📌 基本信息</span>
+              <span class="section-chevron">▼</span>
+            </div>
+            <div class="section-body" id="section-basic">
+              <div class="field-row">
+                <div class="field">
+                  <label>本人当前年龄</label>
+                  <input type="number" data-key="basic.currentAge" value="30" min="1" max="100" step="1">
+                  <span class="unit">岁</span>
+                </div>
+                <div class="field">
+                  <label>配偶年龄</label>
+                  <input type="number" data-key="basic.spouseAge" value="30" min="0" max="100" step="1">
+                  <span class="unit">岁（0=未婚）</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>计划退休年龄</label>
+                  <input type="number" data-key="basic.retirementAge" value="60" min="1" max="100" step="1">
+                  <span class="unit">岁</span>
+                </div>
+                <div class="field">
+                  <label>预期寿命</label>
+                  <input type="number" data-key="basic.lifeExpectancy" value="85" min="1" max="120" step="1">
+                  <span class="unit">岁</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. 经济假设 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-economy">
+              <span class="section-title">📈 经济假设</span>
+              <span class="section-chevron">▼</span>
+            </div>
+            <div class="section-body" id="section-economy">
+              <div class="field-row">
+                <div class="field">
+                  <label>通货膨胀率</label>
+                  <input type="number" data-key="economy.inflationRate" value="3.0" min="0" max="50" step="0.1">
+                  <span class="unit">%</span>
+                </div>
+                <div class="field">
+                  <label>退休前投资回报率</label>
+                  <input type="number" data-key="economy.preRetireReturn" value="5.0" min="0" max="50" step="0.1">
+                  <span class="unit">%</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>退休后投资回报率</label>
+                  <input type="number" data-key="economy.postRetireReturn" value="3.0" min="0" max="50" step="0.1">
+                  <span class="unit">%</span>
+                </div>
+                <div class="field">
+                  <label>薪资年增长率</label>
+                  <input type="number" data-key="economy.salaryGrowthRate" value="5.0" min="0" max="50" step="0.1">
+                  <span class="unit">%</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>综合税率</label>
+                  <input type="number" data-key="economy.taxRate" value="10.0" min="0" max="50" step="0.1">
+                  <span class="unit">%</span>
+                </div>
+                <div class="field">
+                  <label>年度个税起征点</label>
+                  <input type="number" data-key="economy.taxAllowance" value="60000" min="0" max="500000" step="1000">
+                  <span class="unit">元/年</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. 当前资产 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-assets">
+              <span class="section-title">💰 当前资产</span>
+              <span class="section-chevron">▼</span>
+            </div>
+            <div class="section-body" id="section-assets">
+              <div class="field-row">
+                <div class="field">
+                  <label>现金/活期存款</label>
+                  <input type="number" data-key="assets.cash" value="100000" min="0" max="999999999" step="1000">
+                  <span class="unit">元</span>
+                </div>
+                <div class="field">
+                  <label>股票/基金/理财</label>
+                  <input type="number" data-key="assets.investments" value="200000" min="0" max="999999999" step="1000">
+                  <span class="unit">元</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>房产净值（自住）</label>
+                  <input type="number" data-key="assets.houseEquity" value="0" min="0" max="999999999" step="10000">
+                  <span class="unit">元</span>
+                </div>
+                <div class="field">
+                  <label>其他资产</label>
+                  <input type="number" data-key="assets.otherAssets" value="0" min="0" max="999999999" step="1000">
+                  <span class="unit">元</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. 负债 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-liabilities">
+              <span class="section-title">🏦 负债</span>
+              <span class="section-chevron">▼</span>
+              <button class="btn-icon btn-add" data-action="add-liability" title="添加负债">+ 添加</button>
+            </div>
+            <div class="section-body" id="section-liabilities">
+              <div class="dynamic-list" id="liabilityList">
+                <!-- Default mortgage -->
+                <div class="dynamic-block" data-index="0">
+                  <div class="block-header">
+                    <span class="block-title">房贷</span>
+                    <button class="btn-icon btn-remove" data-action="remove-liability" title="删除">✕</button>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label>贷款余额</label>
+                      <input type="number" data-key="liabilities.0.total" value="500000" min="0" max="99999999" step="1000">
+                      <span class="unit">元</span>
+                    </div>
+                    <div class="field">
+                      <label>月供</label>
+                      <input type="number" data-key="liabilities.0.monthlyPayment" value="3500" min="0" max="500000" step="100">
+                      <span class="unit">元</span>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label>剩余年限</label>
+                      <input type="number" data-key="liabilities.0.remainingYears" value="15" min="1" max="50" step="1">
+                      <span class="unit">年</span>
+                    </div>
+                    <div class="field">
+                      <label>名称标签</label>
+                      <input type="text" data-key="liabilities.0.label" value="房贷">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p class="section-hint">负债月供按固定金额计算（不受通胀影响）</p>
+            </div>
+          </section>
+
+          <!-- 5. 月度支出 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-expenses">
+              <span class="section-title">🛒 月度支出</span>
+              <span class="section-chevron">▼</span>
+            </div>
+            <div class="section-body" id="section-expenses">
+              <div class="field-row">
+                <div class="field">
+                  <label>生活开支（餐饮/日用）</label>
+                  <input type="number" data-key="expenses.living" value="3000" min="0" max="999999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field">
+                  <label>水电燃气物业</label>
+                  <input type="number" data-key="expenses.utilities" value="500" min="0" max="99999" step="50">
+                  <span class="unit">元/月</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>通信网络（手机/宽带）</label>
+                  <input type="number" data-key="expenses.communication" value="300" min="0" max="9999" step="50">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field">
+                  <label>交通（油费/电费/公交）</label>
+                  <input type="number" data-key="expenses.transportation" value="1000" min="0" max="99999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>房租</label>
+                  <input type="number" data-key="expenses.rent" value="0" min="0" max="99999" step="100">
+                  <span class="unit">元/月（0=自有房）</span>
+                </div>
+                <div class="field">
+                  <label>商业保险（医疗/重疾/寿险）</label>
+                  <input type="number" data-key="expenses.insurance" value="800" min="0" max="99999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>医疗保健（日常）</label>
+                  <input type="number" data-key="expenses.medical" value="300" min="0" max="99999" step="50">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field">
+                  <label>娱乐餐饮旅游</label>
+                  <input type="number" data-key="expenses.entertainment" value="1000" min="0" max="99999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>宠物开支</label>
+                  <input type="number" data-key="expenses.petCare" value="0" min="0" max="99999" step="50">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field">
+                  <label>其他杂项</label>
+                  <input type="number" data-key="expenses.miscellaneous" value="500" min="0" max="99999" step="50">
+                  <span class="unit">元/月</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. 子女 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-children">
+              <span class="section-title">👶 子女信息</span>
+              <span class="section-chevron">▼</span>
+              <button class="btn-icon btn-add" data-action="add-child" title="添加子女">+ 添加</button>
+            </div>
+            <div class="section-body" id="section-children">
+              <div class="dynamic-list" id="childList">
+                <!-- Default child -->
+                <div class="dynamic-block child-block" data-index="0">
+                  <div class="block-header">
+                    <span class="block-title">子女 #1</span>
+                    <button class="btn-icon btn-remove" data-action="remove-child" title="删除">✕</button>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label>姓名/称呼</label>
+                      <input type="text" data-key="children.0.name" value="大宝">
+                    </div>
+                    <div class="field">
+                      <label>年龄</label>
+                      <input type="number" data-key="children.0.age" value="5" min="0" max="50" step="1">
+                      <span class="unit">岁</span>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label>月均开销/零花</label>
+                      <input type="number" data-key="children.0.monthlyAllowance" value="1500" min="0" max="99999" step="100">
+                      <span class="unit">元/月</span>
+                    </div>
+                    <div class="field">
+                      <label>年教育费用</label>
+                      <input type="number" data-key="children.0.annualEducation" value="20000" min="0" max="999999" step="1000">
+                      <span class="unit">元/年</span>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label>年兴趣班费用</label>
+                      <input type="number" data-key="children.0.extracurricular" value="10000" min="0" max="999999" step="1000">
+                      <span class="unit">元/年</span>
+                    </div>
+                    <div class="field">
+                      <label>大学教育金目标</label>
+                      <input type="number" data-key="children.0.collegeFund" value="200000" min="0" max="9999999" step="10000">
+                      <span class="unit">元</span>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label>预计经济独立年龄</label>
+                      <input type="number" data-key="children.0.independenceAge" value="22" min="1" max="40" step="1">
+                      <span class="unit">岁</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 7. 人情往来 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-social">
+              <span class="section-title">🎁 人情往来</span>
+              <span class="section-chevron">▼</span>
+            </div>
+            <div class="section-body" id="section-social">
+              <div class="field-row">
+                <div class="field">
+                  <label>月均人情开支（聚会/随礼）</label>
+                  <input type="number" data-key="social.monthlyGatherings" value="500" min="0" max="99999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field">
+                  <label>年度大额（婚礼/过节/红包）</label>
+                  <input type="number" data-key="social.annualSpecial" value="5000" min="0" max="999999" step="500">
+                  <span class="unit">元/年</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 8. 收入与目标 -->
+          <section class="form-section">
+            <div class="section-header" data-toggle="section-income">
+              <span class="section-title">💼 收入与目标</span>
+              <span class="section-chevron">▼</span>
+            </div>
+            <div class="section-body" id="section-income">
+              <div class="field-row">
+                <div class="field">
+                  <label id="incomeLabel">当前税后月收入</label>
+                  <input type="number" data-key="income.monthlySalary" id="incomeInput" value="15000" min="0" max="9999999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field">
+                  <label>其他月收入（房租/兼职/分红）</label>
+                  <input type="number" data-key="income.otherMonthlyIncome" value="0" min="0" max="9999999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label>退休后月养老金（社保/年金）</label>
+                  <input type="number" data-key="income.monthlyPension" value="3000" min="0" max="999999" step="100">
+                  <span class="unit">元/月</span>
+                </div>
+                <div class="field" id="targetField">
+                  <label id="targetLabel">退休目标存款</label>
+                  <input type="number" data-key="target.targetSavings" id="targetInput" value="2000000" min="0" max="999999999" step="100000">
+                  <span class="unit">元</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Buttons -->
+          <div class="form-actions">
+            <button class="btn btn-primary" id="btnCalculate">🔄 开始计算</button>
+            <button class="btn btn-secondary" id="btnReset">↺ 重置默认</button>
+            <button class="btn btn-outline" id="btnExportCSV">📥 导出 CSV</button>
+            <button class="btn btn-outline" id="btnSaveConfig">💾 保存配置</button>
+          </div>
+          <p class="disclaimer">⚠️ 本工具为模拟估算，不构成投资建议。实际结果可能因市场波动、政策变化等因素存在差异。</p>
+        </div>
+      </aside>
+
+      <!-- ===== RIGHT MAIN CONTENT ===== -->
+      <main class="main-content" id="mainContent">
+        <!-- Summary Cards -->
+        <div class="summary-cards" id="summaryCards">
+          <div class="card card-primary">
+            <div class="card-label">每月需收入</div>
+            <div class="card-value" id="cardRequiredIncome">—</div>
+            <div class="card-desc">税后月收入需求</div>
+          </div>
+          <div class="card card-success">
+            <div class="card-label">退休时总存款</div>
+            <div class="card-value" id="cardRetirementSavings">—</div>
+            <div class="card-desc">达到退休年龄时的储蓄总额</div>
+          </div>
+          <div class="card card-info">
+            <div class="card-label">退休时月支出</div>
+            <div class="card-value" id="cardRetirementExpenses">—</div>
+            <div class="card-desc">退休当年经通胀调整的月均支出</div>
+          </div>
+          <div class="card card-warning">
+            <div class="card-label">退休生活可持续至</div>
+            <div class="card-value" id="cardSustainability">—</div>
+            <div class="card-desc">按当前计划存款能够维持到</div>
+          </div>
+        </div>
+
+        <!-- Charts Area -->
+        <div class="charts-area">
+          <div class="chart-tabs" id="chartTabs">
+            <button class="chart-tab active" data-chart="savings">📈 存款增长</button>
+            <button class="chart-tab" data-chart="cashflow">📊 收支对比</button>
+            <button class="chart-tab" data-chart="breakdown">🥧 支出构成</button>
+            <button class="chart-tab" data-chart="sensitivity">🎯 敏感性分析</button>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartSavings"></canvas>
+            <canvas id="chartCashflow" style="display:none"></canvas>
+            <div id="chartBreakdownContainer" style="display:none">
+              <div class="breakdown-controls">
+                <label>查看年份：</label>
+                <select id="breakdownYearSelect"></select>
+              </div>
+              <canvas id="chartBreakdown"></canvas>
+            </div>
+            <div id="chartSensitivityContainer" style="display:none">
+              <p class="section-hint">调整敏感参数，观察对退休存款的影响：</p>
+              <div class="sensitivity-params">
+                <div class="field">
+                  <label>通胀率波动</label>
+                  <input type="range" data-key="sensitivity.inflation" value="1.0" min="-3" max="3" step="0.5">
+                  <span id="sensInflationVal">±1.0%</span>
+                </div>
+                <div class="field">
+                  <label>投资回报波动</label>
+                  <input type="range" data-key="sensitivity.return" value="1.0" min="-3" max="3" step="0.5">
+                  <span id="sensReturnVal">±1.0%</span>
+                </div>
+              </div>
+              <canvas id="chartSensitivity"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-table-wrapper">
+          <div class="table-header">
+            <h3>📋 年度明细表</h3>
+            <span class="table-info">显示退休年份高亮</span>
+          </div>
+          <div class="table-scroll">
+            <table id="dataTable">
+              <thead>
+                <tr>
+                  <th>年份</th>
+                  <th>年龄</th>
+                  <th>年收入</th>
+                  <th>年支出</th>
+                  <th>贷款还款</th>
+                  <th>税费</th>
+                  <th>净现金流</th>
+                  <th>年末存款</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody">
+                <tr><td colspan="9" class="table-empty">请点击"开始计算"查看结果</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
