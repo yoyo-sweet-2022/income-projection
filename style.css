@@ -146,6 +146,30 @@ a:hover { text-decoration: underline; }
   box-shadow: var(--shadow-sm);
 }
 
+/* Toggle description text — always visible on mobile, tooltip-only on desktop */
+.toggle-desc {
+  display: none;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: 4px;
+}
+
+@media (max-width: 1024px) {
+  .toggle-desc {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 0.68rem;
+  }
+
+  .mode-toggle, .view-toggle {
+    flex-wrap: wrap;
+  }
+}
+
 /* ---------- Main Layout ---------- */
 .main-layout {
   display: flex;
