@@ -18,16 +18,18 @@
         <div class="mode-toggle">
           <span class="mode-label">计算模式：</span>
           <div class="toggle-buttons" id="modeToggle">
-            <button class="toggle-btn active" data-mode="goal-seeking">🎯 目标求解</button>
-            <button class="toggle-btn" data-mode="projection">📈 方案推演</button>
+            <button class="toggle-btn active" data-mode="goal-seeking" title="输入退休目标存款，反推每月所需收入">🎯 目标求解</button>
+            <button class="toggle-btn" data-mode="projection" title="输入当前月收入，预测退休时能达到的存款">📈 方案推演</button>
           </div>
+          <span class="toggle-desc" id="modeDesc">输入退休目标存款 → 反推每月所需收入</span>
         </div>
         <div class="view-toggle">
           <span class="mode-label">显示：</span>
           <div class="toggle-buttons" id="viewToggle">
-            <button class="toggle-btn active" data-view="nominal">名义值</button>
-            <button class="toggle-btn" data-view="real">实际值</button>
+            <button class="toggle-btn" data-view="nominal" title="显示未来年份的名义金额（含通胀）">名义值</button>
+            <button class="toggle-btn active" data-view="real" title="折合至今的购买力，剔除通胀影响">实际值</button>
           </div>
+          <span class="toggle-desc" id="viewDesc">金额已剔除通胀，反映真实的购买力</span>
         </div>
       </div>
     </header>
@@ -48,12 +50,12 @@
               <div class="field-row">
                 <div class="field">
                   <label>本人当前年龄</label>
-                  <input type="number" data-key="basic.currentAge" value="30" min="1" max="100" step="1">
+                  <input type="number" data-key="basic.currentAge" value="35" min="1" max="100" step="1">
                   <span class="unit">岁</span>
                 </div>
                 <div class="field">
                   <label>配偶年龄</label>
-                  <input type="number" data-key="basic.spouseAge" value="30" min="0" max="100" step="1">
+                  <input type="number" data-key="basic.spouseAge" value="35" min="0" max="100" step="1">
                   <span class="unit">岁（0=未婚）</span>
                 </div>
               </div>
