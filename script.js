@@ -11,8 +11,8 @@
 
   const DEFAULTS = {
     basic: {
-      currentAge: 30,
-      spouseAge: 30,
+      currentAge: 35,
+      spouseAge: 35,
       retirementAge: 60,
       lifeExpectancy: 85,
     },
@@ -61,7 +61,7 @@
   // Global state
   let state = {
     mode: 'goal-seeking', // 'goal-seeking' | 'projection'
-    view: 'nominal',      // 'nominal' | 'real'
+    view: 'real',      // 'nominal' | 'real' (default to real to avoid inflation masking drops)
     yearlyData: [],
     summary: {
       requiredMonthlyIncome: null,
@@ -180,23 +180,24 @@
         // Social expenses
         const socialExpenses = ((social.monthlyGatherings || 0) * 12 + (social.annualSpecial || 0)) * inflFactor;
 
-        // Children expenses
-        let childExpenses = 0;
-        let childEducationFund = 0;
+        // Children expenses (split into categories)
+        let childLivingExpenses = 0;
+        let childEducationExpenses = 0;
+        let childCollegeFund = 0;
         if (children && children.length > 0) {
           for (const child of children) {
+            const childAge = (child.age || 0) + t; // child's current age
             const indepAge = child.independenceAge || 22;
-            if (age < indepAge) {
-              childExpenses += (child.monthlyAllowance || 0) * 12 * inflFactor;
-              childExpenses += (child.annualEducation || 0) * inflFactor;
-              childExpenses += (child.extracurricular || 0) * inflFactor;
+            if (childAge < indepAge) {
+              childLivingExpenses += (child.monthlyAllowance || 0) * 12 * inflFactor;
+              childEducationExpenses += ((child.annualEducation || 0) + (child.extracurricular || 0)) * inflFactor;
 
-              // College fund: annual contribution
+              // College fund: annual contribution (starts from age 18)
               const collegeTarget = child.collegeFund || 0;
-              if (collegeTarget > 0 && age >= 18 && age < indepAge) {
-                const remaining = indepAge - age;
-                if (remaining > 0) {
-                  childEducationFund += collegeTarget / remaining;
+              if (collegeTarget > 0 && childAge >= 18) {
+                const remainingYears = indepAge - childAge;
+                if (remainingYears > 0) {
+                  childCollegeFund += collegeTarget / remainingYears;
                 }
               }
             }
@@ -205,16 +206,22 @@
 
         // Liability payments (fixed nominal amounts, NOT inflation-adjusted)
         let liabilityPayments = 0;
+        const liabilityDetails = [];
         if (liabilities && liabilities.length > 0) {
           for (const liability of liabilities) {
             const remaining = liability.remainingYears || 0;
             if (t < remaining) {
-              liabilityPayments += (liability.monthlyPayment || 0) * 12;
+              const amt = (liability.monthlyPayment || 0) * 12;
+              liabilityPayments += amt;
+              liabilityDetails.push({
+                label: liability.label || '贷款',
+                amount: amt,
+              });
             }
           }
         }
 
-        const totalExpenses = baseLivingExpenses + socialExpenses + childExpenses + childEducationFund + liabilityPayments;
+        const totalExpenses = baseLivingExpenses + socialExpenses + childLivingExpenses + childEducationExpenses + childCollegeFund + liabilityPayments;
 
         // --- Tax (simplified: only on salary income above allowance) ---
         const taxableIncome = Math.max(0, salaryIncome - taxAllowance);
@@ -247,9 +254,11 @@
           totalIncome: round2(totalIncome),
           baseLivingExpenses: round2(baseLivingExpenses),
           socialExpenses: round2(socialExpenses),
-          childExpenses: round2(childExpenses),
-          childEducationFund: round2(childEducationFund),
+          childLivingExpenses: round2(childLivingExpenses),
+          childEducationExpenses: round2(childEducationExpenses),
+          childCollegeFund: round2(childCollegeFund),
           liabilityPayments: round2(liabilityPayments),
+          liabilityDetails: liabilityDetails,
           tax: round2(tax),
           totalExpenses: round2(totalExpenses),
           netCashFlow: round2(netCashFlow),
@@ -375,7 +384,7 @@
       const inputs = block.querySelectorAll('[data-key]');
       const item = {};
       inputs.forEach(function (inp) {
-        const key = inp.getAttribute('data-key').split('.').slice(1).join('.');
+        const key = inp.getAttribute('data-key').split('.').slice(2).join('.');
         let val = parseFloat(inp.value);
         if (isNaN(val)) val = inp.value;
         item[key] = val;
@@ -394,7 +403,7 @@
       const inputs = block.querySelectorAll('[data-key]');
       const item = {};
       inputs.forEach(function (inp) {
-        const key = inp.getAttribute('data-key').split('.').slice(1).join('.');
+        const key = inp.getAttribute('data-key').split('.').slice(2).join('.');
         let val = parseFloat(inp.value);
         if (isNaN(val)) val = inp.value;
         item[key] = val;
@@ -704,21 +713,68 @@
 
     var idx = clamp(yearIndex || Math.floor(yearlyData.length / 2), 0, yearlyData.length - 1);
     var d = yearlyData[idx];
-    var isReal = state.view === 'real';
-    var inflFactor = isReal ? 1 : (state.view === 'nominal' ? 1 : 1);
 
     var labels = [];
     var values = [];
+    var accounted = 0;
 
-    if (d.baseLivingExpenses > 0) { labels.push('生活支出'); values.push(d.baseLivingExpenses); }
-    if (d.childExpenses > 0) { labels.push('子女支出'); values.push(d.childExpenses); }
-    if (d.liabilityPayments > 0) { labels.push('贷款还款'); values.push(d.liabilityPayments); }
-    if (d.socialExpenses > 0) { labels.push('人情往来'); values.push(d.socialExpenses); }
-    if (d.tax > 0) { labels.push('税费'); values.push(d.tax); }
+    // Base living expenses
+    if (d.baseLivingExpenses > 0) {
+      labels.push('生活支出');
+      values.push(d.baseLivingExpenses);
+      accounted += d.baseLivingExpenses;
+    }
 
-    // Add "其他" catch-all
-    var other = d.totalExpenses - (d.baseLivingExpenses + d.childExpenses + d.liabilityPayments + d.socialExpenses);
-    if (other > 0) { labels.push('其他'); values.push(other); }
+    // Child daily living
+    if (d.childLivingExpenses > 0) {
+      labels.push('子女日常');
+      values.push(d.childLivingExpenses);
+      accounted += d.childLivingExpenses;
+    }
+
+    // Child education (tutoring, school fees, extracurricular)
+    if (d.childEducationExpenses > 0) {
+      labels.push('子女教育');
+      values.push(d.childEducationExpenses);
+      accounted += d.childEducationExpenses;
+    }
+
+    // College fund
+    if (d.childCollegeFund > 0) {
+      labels.push('大学教育金');
+      values.push(d.childCollegeFund);
+      accounted += d.childCollegeFund;
+    }
+
+    // Each liability separately
+    if (d.liabilityDetails && d.liabilityDetails.length > 0) {
+      d.liabilityDetails.forEach(function (li) {
+        labels.push(li.label || '贷款');
+        values.push(li.amount);
+        accounted += li.amount;
+      });
+    }
+
+    // Social expenses
+    if (d.socialExpenses > 0) {
+      labels.push('人情往来');
+      values.push(d.socialExpenses);
+      accounted += d.socialExpenses;
+    }
+
+    // Tax
+    if (d.tax > 0) {
+      labels.push('税费');
+      values.push(d.tax);
+      accounted += d.tax;
+    }
+
+    // "Other" catch-all
+    var other = d.totalExpenses - accounted;
+    if (other > 1) {
+      labels.push('其他');
+      values.push(other);
+    }
 
     charts.breakdown.data.labels = labels;
     charts.breakdown.data.datasets[0].data = values;
@@ -975,17 +1031,20 @@
     var incomeInput = document.getElementById('incomeInput');
     var targetLabel = document.getElementById('targetLabel');
     var targetInput = document.getElementById('targetInput');
+    var modeDesc = document.getElementById('modeDesc');
 
     if (mode === 'goal-seeking') {
       incomeLabel.textContent = '反推所得月收入';
       incomeInput.disabled = true;
       targetLabel.textContent = '退休目标存款';
       targetInput.disabled = false;
+      if (modeDesc) modeDesc.textContent = '输入退休目标存款 → 反推每月所需收入';
     } else {
       incomeLabel.textContent = '当前税后月收入';
       incomeInput.disabled = false;
       targetLabel.textContent = '退休目标存款（参考）';
       targetInput.disabled = false;
+      if (modeDesc) modeDesc.textContent = '输入当前月收入 → 预测退休时能达到的存款';
     }
   }
 
@@ -995,6 +1054,12 @@
     btns.forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-view') === view);
     });
+    var viewDesc = document.getElementById('viewDesc');
+    if (view === 'nominal') {
+      if (viewDesc) viewDesc.textContent = '显示未来年份的名义金额（含通胀）';
+    } else {
+      if (viewDesc) viewDesc.textContent = '折合至今的购买力，剔除通胀影响';
+    }
     // Re-render with new view
     if (state.yearlyData && state.yearlyData.length > 0) {
       var params = collectFormData();
@@ -1129,6 +1194,15 @@
       }
     });
 
+    // --- Auto-calculate on any input change (debounced) ---
+    var calcTimer = null;
+    document.getElementById('sidebar').addEventListener('input', function (e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+        clearTimeout(calcTimer);
+        calcTimer = setTimeout(runCalculation, 300);
+      }
+    });
+
     // --- Chart tabs ---
     document.getElementById('chartTabs').addEventListener('click', function (e) {
       var tab = e.target.closest('.chart-tab');
@@ -1220,6 +1294,7 @@
 
     // --- Set default mode ---
     setMode('goal-seeking');
+    setView('real');
 
     // --- Auto-collapse sections on mobile ---
     if (window.innerWidth <= 1024) {
